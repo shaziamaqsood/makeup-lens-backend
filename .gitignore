@@ -1,5 +1,8 @@
 venv/
+models/
+uploads/
+outputs/
+.idea/
 __pycache__/
 *.pyc
-outputs/
-.env
+test.py
