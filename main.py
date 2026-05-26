@@ -33,18 +33,8 @@ async def analyze(file: UploadFile = File(...)):
     response = client.models.generate_content(
         model="gemini-2.0-flash",
         contents=[
-            {
-                "role": "user",
-                "parts": [
-                    prompt,
-                    {
-                        "inline_data": {
-                            "mime_type": file.content_type,
-                            "data": image_bytes
-                        }
-                    }
-                ]
-            }
+            prompt,
+            image_bytes
         ]
     )
 
