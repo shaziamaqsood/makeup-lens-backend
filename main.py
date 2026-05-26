@@ -2,7 +2,9 @@ from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 import os
-import base64
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -14,10 +16,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Gemini API Key
-genai.configure(api_key=os.getenv("AIzaSyA8Qj4tagNKWp_AEN6Ioep6Q040N-vd-Dw"))
+# Load API key correctly
+import os
+
+client = genai.Client(
+    api_key=os.getenv("AIzaSyDMHOrPaMXph5nrwBmmlXOkA0f-_lvBvus")
+)
 
 model = genai.GenerativeModel("gemini-1.5-flash")
+
+
+@app.get("/")
+def home():
+    return {"message": "Backend is running"}
 
 
 @app.post("/analyze")
@@ -25,26 +36,21 @@ async def analyze(file: UploadFile = File(...)):
 
     image_bytes = await file.read()
 
-    image_base64 = base64.b64encode(image_bytes).decode("utf-8")
-
     prompt = """
-    Analyze this face image and give:
-    1. Makeup recommendation
-    2. Compliment
-    3. Suggested style
-    Return in JSON format:
-    {
-      "recommendation": "",
-      "compliment": "",
-      "output_image": ""
-    }
+    Analyze this face and give:
+    - Foundation shade
+    - Lipstick color
+    - Blush color
+    - Eye makeup
+    - Compliment
     """
 
     response = model.generate_content([
         prompt,
-        {"mime_type": file.content_type, "data": image_bytes}
+        {
+            "mime_type": file.content_type,
+            "data": image_bytes
+        }
     ])
 
-    return {
-        "result": response.text
-    }
+    return {"result": response.text}
