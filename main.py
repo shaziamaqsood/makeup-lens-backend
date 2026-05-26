@@ -1,48 +1,81 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, UploadFile, File
+from PIL import Image
+import numpy as np
+import cv2
+import mediapipe as mp
+import google.generativeai as genai
+from dotenv import load_dotenv
 import os
+import io
 
-from google import genai
-from google.genai import types
+load_dotenv()
 
 app = FastAPI()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+genai.configure(api_key=os.getenv("AIzaSyDMHOrPaMXph5nrwBmmlXOkA0f-_lvBvus"))
+
+model = genai.GenerativeModel("gemini-1.5-flash")
+
+mp_face_mesh = mp.solutions.face_mesh
+face_mesh = mp_face_mesh.FaceMesh(
+    static_image_mode=True,
+    max_num_faces=1
 )
 
-# ✅ CORRECT: use environment variable name
-client = genai.Client(api_key=os.getenv("AIzaSyDMHOrPaMXph5nrwBmmlXOkA0f-_lvBvus"))
-
+@app.get("/")
+def home():
+    return {"message": "Makeup Lens AI Backend Running"}
 
 @app.post("/analyze")
-async def analyze(file: UploadFile = File(...)):
+async def analyze_face(file: UploadFile = File(...)):
 
-    image_bytes = await file.read()
+    contents = await file.read()
 
-    prompt = """
-    Analyze this face image and give:
-    1. Makeup recommendation
-    2. Compliment
-    3. Suggested style
-    Return JSON format.
+    image = Image.open(io.BytesIO(contents)).convert("RGB")
+    image_np = np.array(image)
+
+    results = face_mesh.process(image_np)
+
+    if not results.multi_face_landmarks:
+        return {"error": "No face detected"}
+
+    # ---------- Skin Tone Detection ----------
+    h, w, _ = image_np.shape
+
+    center_x = w // 2
+    center_y = h // 2
+
+    skin_pixel = image_np[center_y, center_x]
+
+    r, g, b = skin_pixel
+
+    skin_description = f"""
+    RGB skin tone values:
+    R={r}
+    G={g}
+    B={b}
     """
 
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=[
-            prompt,
-            types.Part.from_bytes(
-                data=image_bytes,
-                mime_type=file.content_type
-            )
-        ]
-    )
+    # ---------- AI Recommendation ----------
+    prompt = f"""
+    You are a professional makeup artist AI.
+
+    Analyze this skin tone:
+    {skin_description}
+
+    Generate:
+    1. Foundation shade
+    2. Powder tone
+    3. Blush color
+    4. Lipstick color
+    5. Eye makeup recommendation
+
+    Generate fresh intelligent recommendations.
+    Do NOT use fixed values.
+    """
+
+    response = model.generate_content(prompt)
 
     return {
-        "result": response.text
+        "recommendations": response.text
     }
