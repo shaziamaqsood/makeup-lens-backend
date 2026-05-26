@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 
 from google import genai
+from google.genai import types
 
 app = FastAPI()
 
@@ -14,8 +15,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# NEW CLIENT (correct)
+# ✅ CORRECT: use environment variable name
 client = genai.Client(api_key=os.getenv("AIzaSyDMHOrPaMXph5nrwBmmlXOkA0f-_lvBvus"))
+
 
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):
@@ -34,7 +36,10 @@ async def analyze(file: UploadFile = File(...)):
         model="gemini-2.0-flash",
         contents=[
             prompt,
-            image_bytes
+            types.Part.from_bytes(
+                data=image_bytes,
+                mime_type=file.content_type
+            )
         ]
     )
 
