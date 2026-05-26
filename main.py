@@ -8,8 +8,6 @@ from PIL import Image
 
 app = FastAPI()
 
-app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,7 +16,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure Gemini
+app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
+
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-1.5-flash")
 
@@ -32,7 +31,6 @@ def home():
 async def analyze(file: UploadFile = File(...)):
 
     image_bytes = await file.read()
-
     image = Image.open(io.BytesIO(image_bytes))
 
     prompt = """
@@ -49,10 +47,7 @@ async def analyze(file: UploadFile = File(...)):
     Make it personalized and real-time.
     """
 
-    response = model.generate_content([
-        prompt,
-        image
-    ])
+    response = model.generate_content([prompt, image])
 
     return {
         "recommendations": response.text
