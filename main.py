@@ -6,6 +6,7 @@ import os
 import io
 from PIL import Image
 
+app = FastAPI()
 
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
