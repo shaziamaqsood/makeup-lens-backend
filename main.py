@@ -1,7 +1,9 @@
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+import google.generativeai as genai
 import os
-from google import genai
+import io
+from PIL import Image
 
 app = FastAPI()
 
@@ -13,44 +15,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def get_client():
-    api_key = os.getenv("GEMINI_API_KEY")
+# Configure Gemini
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-1.5-flash")
 
-    if not api_key:
-        return None
 
-    return genai.Client(api_key=api_key)
+@app.get("/")
+def home():
+    return {"message": "Makeup Lens API Running"}
 
 
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):
 
-    client = get_client()
-
-    if client is None:
-        return {"error": "API key missing on server"}
-
     image_bytes = await file.read()
 
+    image = Image.open(io.BytesIO(image_bytes))
+
     prompt = """
-    Analyze this face image and give:
-    1. Makeup recommendation
-    2. Compliment
-    3. Suggested style
-    Return JSON format.
+    You are a professional makeup artist AI.
+
+    Analyze the face image and provide:
+    1. Foundation recommendation
+    2. Powder recommendation
+    3. Blush recommendation
+    4. Lipstick recommendation
+    5. Eye makeup recommendation
+    6. Beauty compliment
+
+    Make it personalized and real-time.
     """
 
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=[
-            prompt,
-            {
-                "inline_data": {
-                    "mime_type": file.content_type,
-                    "data": image_bytes
-                }
-            }
-        ]
-    )
+    response = model.generate_content([
+        prompt,
+        image
+    ])
 
-    return {"result": response.text}
+    return {
+        "recommendations": response.text
+    }
