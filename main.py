@@ -6,9 +6,14 @@ import os
 import io
 from PIL import Image
 
+# ----------------------------
+# CREATE APP FIRST (IMPORTANT)
+# ----------------------------
 app = FastAPI()
 
-# CORS setup
+# ----------------------------
+# CORS
+# ----------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,22 +22,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static folder for outputs (must exist in project)
+# ----------------------------
+# STATIC FOLDER SAFE CHECK
+# ----------------------------
+if not os.path.exists("outputs"):
+    os.makedirs("outputs")
+
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
-# Gemini API setup (from Render env variable)
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# ----------------------------
+# GEMINI CONFIG (USE ENV ONLY)
+# ----------------------------
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+if not GEMINI_API_KEY:
+    raise Exception("GEMINI_API_KEY is missing in environment variables")
+
+genai.configure(api_key=GEMINI_API_KEY)
+
 model = genai.GenerativeModel("gemini-1.5-flash")
 
-
+# ----------------------------
+# ROUTES
+# ----------------------------
 @app.get("/")
 def home():
-    return {"message": "Makeup Lens API Running"}
+    return {"message": "Makeup Lens API Running 🚀"}
 
 
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):
-
     image_bytes = await file.read()
     image = Image.open(io.BytesIO(image_bytes))
 
