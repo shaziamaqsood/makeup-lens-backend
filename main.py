@@ -19,9 +19,7 @@ app.add_middleware(
 # Load API key correctly
 import os
 
-client = genai.Client(
-    api_key=os.getenv("AIzaSyDMHOrPaMXph5nrwBmmlXOkA0f-_lvBvus")
-)
+genai.configure(api_key=os.getenv("AIzaSyDMHOrPaMXph5nrwBmmlXOkA0f-_lvBvus"))
 
 model = genai.GenerativeModel("gemini-1.5-flash")
 
