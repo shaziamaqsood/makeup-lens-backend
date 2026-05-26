@@ -1,11 +1,13 @@
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import google.generativeai as genai
 import os
 import io
 from PIL import Image
 
-app = FastAPI()
+
+app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
 app.add_middleware(
     CORSMiddleware,
