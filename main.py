@@ -17,7 +17,6 @@ app.add_middleware(
 # NEW CLIENT (correct)
 client = genai.Client(api_key=os.getenv("AIzaSyDMHOrPaMXph5nrwBmmlXOkA0f-_lvBvus"))
 
-
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):
 
@@ -34,8 +33,18 @@ async def analyze(file: UploadFile = File(...)):
     response = client.models.generate_content(
         model="gemini-2.0-flash",
         contents=[
-            prompt,
-            image_bytes
+            {
+                "role": "user",
+                "parts": [
+                    prompt,
+                    {
+                        "inline_data": {
+                            "mime_type": file.content_type,
+                            "data": image_bytes
+                        }
+                    }
+                ]
+            }
         ]
     )
 
