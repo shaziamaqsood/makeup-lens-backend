@@ -13,17 +13,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ FIX: correct environment variable usage
-API_KEY = os.getenv("AIzaSyDMHOrPaMXph5nrwBmmlXOkA0f-_lvBvus")
+def get_client():
+    api_key = os.getenv("GEMINI_API_KEY")
 
-if not API_KEY:
-    raise Exception("GEMINI_API_KEY is not set in environment variables")
+    if not api_key:
+        return None
 
-client = genai.Client(api_key=API_KEY)
+    return genai.Client(api_key=api_key)
 
 
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):
+
+    client = get_client()
+
+    if client is None:
+        return {"error": "API key missing on server"}
 
     image_bytes = await file.read()
 
@@ -38,17 +43,12 @@ async def analyze(file: UploadFile = File(...)):
     response = client.models.generate_content(
         model="gemini-2.0-flash",
         contents=[
+            prompt,
             {
-                "role": "user",
-                "parts": [
-                    prompt,
-                    {
-                        "inline_data": {
-                            "mime_type": file.content_type,
-                            "data": image_bytes
-                        }
-                    }
-                ]
+                "inline_data": {
+                    "mime_type": file.content_type,
+                    "data": image_bytes
+                }
             }
         ]
     )

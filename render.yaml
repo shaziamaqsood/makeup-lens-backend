@@ -2,7 +2,5 @@ services:
   - type: web
     name: makeup-lens-backend
     env: python
-    region: oregon
-    plan: free
-    buildCommand: pip install --no-cache-dir -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
