@@ -8,6 +8,7 @@ from PIL import Image
 
 app = FastAPI()
 
+# CORS setup
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,8 +17,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Static folder for outputs (must exist in project)
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
+# Gemini API setup (from Render env variable)
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-1.5-flash")
 
