@@ -7,7 +7,7 @@ import io
 from PIL import Image
 
 # ----------------------------
-# CREATE APP FIRST (IMPORTANT)
+# CREATE APP
 # ----------------------------
 app = FastAPI()
 
@@ -23,7 +23,7 @@ app.add_middleware(
 )
 
 # ----------------------------
-# STATIC FOLDER SAFE CHECK
+# STATIC FOLDER
 # ----------------------------
 if not os.path.exists("outputs"):
     os.makedirs("outputs")
@@ -31,7 +31,7 @@ if not os.path.exists("outputs"):
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
 # ----------------------------
-# GEMINI CONFIG (USE ENV ONLY)
+# GEMINI CONFIG
 # ----------------------------
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
@@ -40,7 +40,7 @@ if not GEMINI_API_KEY:
 
 genai.configure(api_key=GEMINI_API_KEY)
 
-model = genai.GenerativeModel("gemini-1.5-flash")
+model = genai.GenerativeModel("gemini-1.5-flash-001")
 
 # ----------------------------
 # ROUTES
@@ -49,28 +49,35 @@ model = genai.GenerativeModel("gemini-1.5-flash")
 def home():
     return {"message": "Makeup Lens API Running 🚀"}
 
-
 @app.post("/analyze")
 async def analyze(file: UploadFile = File(...)):
-    image_bytes = await file.read()
-    image = Image.open(io.BytesIO(image_bytes))
+    try:
+        image_bytes = await file.read()
 
-    prompt = """
-    You are a professional makeup artist AI.
+        # IMPORTANT FIX
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
-    Analyze the face image and provide:
-    1. Foundation recommendation
-    2. Powder recommendation
-    3. Blush recommendation
-    4. Lipstick recommendation
-    5. Eye makeup recommendation
-    6. Beauty compliment
+        prompt = """
+        You are a professional makeup artist AI.
 
-    Make it personalized and real-time.
-    """
+        Analyze the face image and provide:
+        1. Foundation recommendation
+        2. Powder recommendation
+        3. Blush recommendation
+        4. Lipstick recommendation
+        5. Eye makeup recommendation
+        6. Beauty compliment
 
-    response = model.generate_content([prompt, image])
+        Make it personalized and real-time.
+        """
 
-    return {
-        "recommendations": response.text
-    }
+        response = model.generate_content([prompt, image])
+
+        return {
+            "recommendations": response.text
+        }
+
+    except Exception as e:
+        return {
+            "error": str(e)
+        }
